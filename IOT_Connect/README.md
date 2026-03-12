@@ -14,6 +14,7 @@ The MasterReceiver component is configured with:
 
 ```bash
 android:exported="true"
+```
 
 However, it does not define any android:permission attribute.
 This means that any external application or ADB command can send a broadcast to this receiver, allowing unauthorized users to trigger internal functionality.
@@ -33,6 +34,7 @@ The application expects a broadcast with:
 ```bash
 Action: MASTER_ON
 Extra: key (PIN)
+```
 
 The receiver then verifies the PIN before enabling the master switch.
 Since we do not know the correct PIN, the next step is to analyze how it is verified.
@@ -51,6 +53,7 @@ Inside the code, I discovered an encrypted string:
 
 ```bash
 OSnaALIWUkpOziVAMycaZQ==
+```
 
 The application uses AES encryption to validate the PIN.
 The key generation process works as follows:
@@ -60,12 +63,16 @@ The resulting value is used as the AES key.
 The encrypted value is decrypted and compared to:
 ```bash
 master_on
+```
+
 Weakness
 
 Although AES is a strong encryption algorithm, the key space is extremely small because the key is derived from a numeric PIN.
 The PIN range appears to be:
 ```bash
 000 – 999
+```
+
 This makes the encryption vulnerable to brute force attacks
 
 Step 4: Brute Force the PIN
@@ -96,6 +103,8 @@ but we have a PIN so we control this via adb command:
 Exploit Command
 ```bash
 adb shell am broadcast -a MASTER_ON --ei key 345
+```
+
 This sends the MASTER_ON broadcast along with the correct PIN.
 
 <img width="581" height="384" alt="Screenshot 2026-02-28 at 7 48 18 in the evening" src="https://github.com/user-attachments/assets/7fe48551-5c11-433c-88bd-dfcfc75f7005" />
@@ -109,6 +118,7 @@ This confirms that the application is vulnerable to unauthorized broadcast injec
 <img width="442" height="795" alt="Screenshot 2026-02-28 at 7 49 27 in the evening" src="https://github.com/user-attachments/assets/539862cb-1f7a-4829-8762-2b72e947595a" />
 
 <img width="452" height="781" alt="Screenshot 2026-02-28 at 7 50 12 in the evening" src="https://github.com/user-attachments/assets/b782e34e-8873-4bac-a7ef-6e4ed994d505" />
+
 
 
 

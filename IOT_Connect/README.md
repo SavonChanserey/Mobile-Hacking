@@ -1,4 +1,4 @@
-Step1: Analyze the Application Using JADX
+**Step1: Analyze the Application Using JADX**
 
 The first step was to decompile the APK using JADX to inspect the source code.
 
@@ -21,7 +21,7 @@ This means that any external application or ADB command can send a broadcast to 
 This is a common Android security issue known as an:
 Exported BroadcastReceiver Vulnerability
 
-Step2: Analyze MasterSwitchActivity
+**Step2: Analyze MasterSwitchActivity**
 
 Next, I examined the logic inside MasterSwitchActivity.java to understand how the master control system works.
 
@@ -39,7 +39,7 @@ Extra: key (PIN)
 The receiver then verifies the PIN before enabling the master switch.
 Since we do not know the correct PIN, the next step is to analyze how it is verified.
 
-Step3: Analyze the PIN Validation Logic
+**Step3: Analyze the PIN Validation Logic**
 
 <img width="1470" height="956" alt="Screenshot 2026-02-28 at 7 28 23 in the evening" src="https://github.com/user-attachments/assets/324f30aa-9969-4bcb-b109-db4358eedea4" />
 
@@ -75,7 +75,7 @@ The PIN range appears to be:
 
 This makes the encryption vulnerable to brute force attacks
 
-Step 4: Brute Force the PIN
+**Step 4: Brute Force the PIN**
 
 To recover the correct PIN, I wrote a Python script to brute force the AES key by testing all possible PIN values.
 
@@ -85,7 +85,8 @@ And found the PIN:
 
 <img width="578" height="382" alt="Screenshot 2026-02-28 at 7 43 38 in the evening" src="https://github.com/user-attachments/assets/9296b268-0358-41d9-a24e-a62741dd94d5" />
 
-Step 5: Exploiting the Broadcast Receiver
+
+**Step 5: Exploiting the Broadcast Receiver**
 
 Before sending the exploit, I first registered an account and logged into the application.
 As expected, a Guest user cannot control the master switch through the UI, and all devices remain turned off.
@@ -109,7 +110,8 @@ This sends the MASTER_ON broadcast along with the correct PIN.
 
 <img width="581" height="384" alt="Screenshot 2026-02-28 at 7 48 18 in the evening" src="https://github.com/user-attachments/assets/7fe48551-5c11-433c-88bd-dfcfc75f7005" />
 
-Step 6: Result
+
+**Step 6: Result**
 
 After sending the broadcast, the application processes the request and enables the master switch.
 All devices are successfully turned ON, demonstrating that the access control mechanism can be bypassed.
@@ -118,6 +120,7 @@ This confirms that the application is vulnerable to unauthorized broadcast injec
 <img width="442" height="795" alt="Screenshot 2026-02-28 at 7 49 27 in the evening" src="https://github.com/user-attachments/assets/539862cb-1f7a-4829-8762-2b72e947595a" />
 
 <img width="452" height="781" alt="Screenshot 2026-02-28 at 7 50 12 in the evening" src="https://github.com/user-attachments/assets/b782e34e-8873-4bac-a7ef-6e4ed994d505" />
+
 
 
 

@@ -41,11 +41,11 @@ Since we do not know the correct PIN, the next step is to analyze how it is veri
 
 **Step3: Analyze the PIN Validation Logic**
 
+Searching the code for MASTER_ON revealed that the application uses a checker function to validate the PIN.
+
 <img width="1470" height="956" alt="Screenshot 2026-02-28 at 7 28 23 in the evening" src="https://github.com/user-attachments/assets/324f30aa-9969-4bcb-b109-db4358eedea4" />
 
 And I see checker_key:
-
-Searching the code for MASTER_ON revealed that the application uses a checker function to validate the PIN.
 
 <img width="1470" height="956" alt="Screenshot 2026-02-28 at 7 29 58 in the evening" src="https://github.com/user-attachments/assets/e5b23d06-b073-4e13-8690-b27e6bf3e622" />
 
@@ -120,6 +120,7 @@ This confirms that the application is vulnerable to unauthorized broadcast injec
 <img width="442" height="795" alt="Screenshot 2026-02-28 at 7 49 27 in the evening" src="https://github.com/user-attachments/assets/539862cb-1f7a-4829-8762-2b72e947595a" />
 
 <img width="452" height="781" alt="Screenshot 2026-02-28 at 7 50 12 in the evening" src="https://github.com/user-attachments/assets/b782e34e-8873-4bac-a7ef-6e4ed994d505" />
+
 
 
 

